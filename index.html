@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>家族年金信託</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root{--bg:#f3f5f7;--panel:#fff;--ink:#16222c;--muted:#566571;--line:#d8dfe5;--accent:#1d5c78;--accent-weak:#e2edf2;--ok:#2d7650;--ok-weak:#e3f1e8;--warn:#94660f;--warn-weak:#f6ecd7;--bad:#b23a3a;--bad-weak:#f8e3e3;--sold:#5b4bb0;--sold-weak:#ebe8f8;--no:#7d858c;--no-weak:#eceff1;--display:"Noto Serif TC",serif;--body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;--mono:"JetBrains Mono",ui-monospace,Menlo,monospace}
+@media (prefers-color-scheme:dark){:root{--bg:#0f161c;--panel:#16212a;--ink:#e3eaef;--muted:#9aa8b3;--line:#2a3843;--accent:#6fb3d0;--accent-weak:#1a3442;--ok:#6cc495;--ok-weak:#173326;--warn:#e0b45c;--warn-weak:#3a2d12;--bad:#ef8a8a;--bad-weak:#3b1b1b;--sold:#a99bf0;--sold-weak:#25213f;--no:#8b949b;--no-weak:#222c34;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.6}
+.wrap{max-width:960px;margin:0 auto;padding:20px max(16px,env(safe-area-inset-left)) 60px;display:flex;flex-direction:column;gap:14px}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+h1{font-family:var(--display);font-size:24px;margin:0}
+h2{font-size:16px;margin:0}
+.muted{color:var(--muted);font-size:13px}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.pill{font-size:12px;padding:3px 10px;border-radius:999px;font-weight:500;background:var(--accent-weak);color:var(--accent)}
+.pill.ok{background:var(--ok-weak);color:var(--ok)}.pill.warn{background:var(--warn-weak);color:var(--warn)}.pill.bad{background:var(--bad-weak);color:var(--bad)}
+button{font-family:inherit;font-size:14px;border-radius:8px;padding:8px 14px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer}
+button.pri{background:var(--accent);border-color:var(--accent);color:var(--panel);font-weight:500}
+button:disabled{opacity:.5;cursor:not-allowed}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+input{font-family:var(--mono);font-size:14px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;padding:8px 10px;width:100%}
+label{font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:4px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px}
+.kpi{background:var(--bg);border-radius:8px;padding:10px 12px}
+.kpi small{display:block;font-size:12px;color:var(--muted)}
+.kpi b{font-family:var(--mono);font-weight:500;font-size:19px;font-variant-numeric:tabular-nums}
+.strip{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:4px}
+.cell{border-radius:6px;padding:6px 0;text-align:center;font-family:var(--mono);font-size:12px}
+.s-claimed{background:var(--no-weak);color:var(--no)}.s-due{background:var(--ok);color:var(--panel)}.s-future{background:var(--accent-weak);color:var(--accent)}.s-listed{background:var(--warn-weak);color:var(--warn);outline:1px dashed var(--warn);outline-offset:-1px}.s-sold{background:var(--sold-weak);color:var(--sold)}.s-mine{box-shadow:inset 0 0 0 2px var(--ink)}
+.keys{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--muted)}
+.keys i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-2px}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;align-items:end}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{font-weight:500;color:var(--muted);font-size:12px}
+.hint{background:var(--accent-weak);color:var(--ink);border-radius:8px;padding:10px 12px;font-size:13px}
+#toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);max-width:min(92vw,620px);padding:12px 16px;border-radius:10px;font-size:14px;display:none;z-index:9;border:1px solid var(--line);background:var(--panel)}
+#toast.bad{border-color:var(--bad);color:var(--bad)}#toast.ok{border-color:var(--ok);color:var(--ok)}
+.log{font-size:13px;display:flex;flex-direction:column;gap:4px;max-height:220px;overflow:auto}
+.hide{display:none!important}
+@media (max-width:560px){.strip{grid-template-columns:repeat(6,minmax(0,1fr))}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div><div class="muted mono">Ethereum Sepolia · FamilyTrust</div><h1>家族年金信託</h1></div>
+    <div class="row">
+      <span id="net" class="pill warn">尚未連線</span>
+      <span id="who" class="pill hide"></span>
+      <button id="connect" class="pri">連接錢包</button>
+    </div>
+  </header>
+
+  <div id="diag" class="hint hide" style="background:var(--warn-weak)"></div>
+
+  <section class="card">
+    <div class="row" style="justify-content:space-between"><h2>信託合約</h2><span class="muted mono" id="me"></span></div>
+    <div class="row" style="flex-wrap:nowrap"><input id="trustAddr" placeholder="貼上 FamilyTrust 合約地址 0x…"><button id="load">載入</button></div>
+    <div class="muted" id="links"></div>
+  </section>
+
+  <div id="main" class="hide" style="display:flex;flex-direction:column;gap:14px">
+    <section class="card">
+      <div class="row" style="justify-content:space-between"><h2>信託總覽</h2><span id="pauseTag" class="pill hide"></span></div>
+      <div class="kpis">
+        <div class="kpi"><small>信託餘額</small><b id="k_bal">—</b></div>
+        <div class="kpi"><small>擔保率</small><b id="k_cov">—</b></div>
+        <div class="kpi"><small>下一期撥款</small><b id="k_next">—</b></div>
+        <div class="kpi"><small>已領 / 總期數</small><b id="k_prog">—</b></div>
+        <div class="kpi"><small>每期金額</small><b id="k_amt">—</b></div>
+        <div class="kpi"><small>你的錢包餘額</small><b id="k_my">—</b></div>
+      </div>
+      <div class="strip" id="strip"></div>
+      <div class="keys"><span><i style="background:var(--no-weak)"></i>已領</span><span><i style="background:var(--ok)"></i>到期可領</span><span><i style="background:var(--accent-weak)"></i>受益人的未來期數</span><span><i style="background:var(--warn-weak);outline:1px dashed var(--warn)"></i>掛單中</span><span><i style="background:var(--sold-weak)"></i>已賣給承購人</span><span><i style="box-shadow:inset 0 0 0 2px var(--ink)"></i>屬於你</span></div>
+    </section>
+
+    <section class="card hide" id="p_claim">
+      <h2>領取撥款</h2>
+      <div class="row"><span>你現在可以領 <b class="mono" id="c_n">0</b> 期，共 <b class="mono" id="c_amt">0</b></span><button class="pri" id="b_claim">領取</button></div>
+    </section>
+
+    <section class="card hide" id="p_settlor">
+      <h2>出資人</h2>
+      <div class="grid3">
+        <label>存入金額（顆）<input id="f_amt" type="number" min="1" step="1"></label>
+        <button class="pri" id="b_fund">存入（自動授權）</button>
+        <span class="muted" id="f_hint"></span>
+      </div>
+      <div class="grid3">
+        <label>暫停期數<input id="p_n" type="number" min="1" step="1" value="1"></label>
+        <button id="b_pause">暫停撥款</button>
+        <button id="b_unpause">提早恢復</button>
+      </div>
+      <div class="muted" id="p_hint"></div>
+    </section>
+
+    <section class="card hide" id="p_benef">
+      <h2>出售未來期數（提前變現）</h2>
+      <div class="grid3">
+        <label>從第幾期<input id="l_from" type="number" min="0" step="1"></label>
+        <label>到第幾期<input id="l_to" type="number" min="0" step="1"></label>
+        <label>參考年化（%）<input id="l_ref" type="number" min="0" step="0.5" value="8"></label>
+        <label>售價（顆）<input id="l_price" type="number" min="1" step="1"></label>
+      </div>
+      <div class="hint" id="l_quote">輸入期數後會顯示面額、合理價與合約允許的最低價。</div>
+      <div class="row"><button class="pri" id="b_list">掛單</button></div>
+    </section>
+
+    <section class="card">
+      <h2>承購市場</h2>
+      <div class="tbl"><table><thead><tr><th>#</th><th>期數</th><th>面額</th><th>售價</th><th>折扣</th><th>隱含年化</th><th>狀態</th><th></th></tr></thead><tbody id="mkt"></tbody></table></div>
+      <div class="muted">隱含年化：承購人的報酬率，也是受益人提早拿錢的成本。定價把每期當成一個月計算。</div>
+    </section>
+
+    <section class="card">
+      <h2>鏈上紀錄（最近）</h2>
+      <div class="log" id="log"><span class="muted">載入中…</span></div>
+    </section>
+  </div>
+</div>
+<div id="toast" role="status"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.4/ethers.umd.min.js"></script>
+<script>window.ethers||document.write('<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"><\/script>')</script>
+<script>
+(function(){
+function diag(html){const d=document.getElementById('diag');d.innerHTML=html;d.classList.remove('hide')}
+var inFrame=false;try{inFrame=window.top!==window.self}catch(_){inFrame=true}
+if(!window.ethers){diag('<b>函式庫沒有載入。</b>請確認網路正常、沒有被擋廣告或防火牆擋住 cdnjs.cloudflare.com，然後重新整理。');return}
+if(!window.ethereum){
+  if(inFrame)diag('<b>這個網頁目前開在預覽框裡，錢包進不來。</b>請把 index.html 下載下來，用電腦版 Chrome 直接打開，或用 GitHub Pages 的網址。');
+  else if(location.protocol==='file:')diag('<b>找不到錢包：本機檔案需要開放權限。</b>到 <code>chrome://extensions</code> → MetaMask → 詳細資料 → 開啟「允許存取檔案網址」，再重新整理這頁。或改用 GitHub Pages 的網址開啟。');
+  else diag('<b>找不到錢包。</b>請用安裝了 MetaMask 的電腦版 Chrome 開啟；手機請用 MetaMask App 內建的瀏覽器。');
+  document.getElementById('connect').disabled=true;
+}
+})();
+(function(){
+if(!window.ethers)return;
+const SEPOLIA = 11155111n;
+const ERRORS = [
+ "error NotSettlor()","error NotBeneficiary()","error InvalidParams()","error ZeroAmount()","error OverFunded()","error NothingToClaim()","error TrustPaused()","error InsufficientFunds()","error InvalidRange()","error PeriodAlreadyDue()","error PeriodNotOwned()","error AlreadyListed()","error PriceTooHigh()","error AprTooHigh()","error NotFullyFunded()","error ListingNotActive()","error CannotBuyOwn()","error SettlorCannotBuy()","error AlreadyPaused()","error NotPaused()","error PauseTooLong()","error PauseBudgetExceeded()",
+ "error ERC20InsufficientAllowance(address spender,uint256 allowance,uint256 needed)","error ERC20InsufficientBalance(address sender,uint256 balance,uint256 needed)","error SafeERC20FailedOperation(address token)","error ReentrancyGuardReentrantCall()"
+];
+const TRUST_ABI = ERRORS.concat([
+ "function token() view returns (address)","function settlor() view returns (address)","function beneficiary() view returns (address)","function unit() view returns (uint256)","function interval() view returns (uint256)","function amountPerPeriod() view returns (uint256)","function totalPeriods() view returns (uint256)","function maxAprBps() view returns (uint256)","function maxPausePeriods() view returns (uint256)","function pausedUntil() view returns (uint256)","function claimed(uint256) view returns (bool)","function claimedCount() view returns (uint256)",
+ "function listings(uint256) view returns (uint256 fromId,uint256 toId,uint256 price,bool active,address buyer)",
+ "function fund(uint256)","function pause(uint256)","function unpause()","function listPeriods(uint256,uint256,uint256) returns (uint256)","function cancelListing(uint256)","function buy(uint256)","function claim()",
+ "function periodOwner(uint256) view returns (address)","function claimable(address) view returns (uint256 periods,uint256 amount)","function nextPayout() view returns (bool exists,uint256 periodId,uint256 time)","function unpaidLiabilities() view returns (uint256)","function coverageBps() view returns (uint256)","function paused() view returns (bool)","function pauseBudgetLeft() view returns (uint256)","function quote(uint256,uint256,uint256) view returns (uint256)","function impliedAprBps(uint256) view returns (uint256)","function listingDiscountBps(uint256) view returns (uint256)","function listingsCount() view returns (uint256)",
+ "event Funded(address indexed from,uint256 amount)","event Claimed(address indexed to,uint256 periods,uint256 amount)","event Listed(uint256 indexed listingId,uint256 fromId,uint256 toId,uint256 price)","event ListingCancelled(uint256 indexed listingId)","event PeriodsSold(uint256 indexed listingId,address indexed buyer,uint256 price)","event Paused(address by,uint256 until)","event Unpaused(address by)"
+]);
+const TOKEN_ABI = ERRORS.concat(["function balanceOf(address) view returns (uint256)","function allowance(address,address) view returns (uint256)","function approve(address,uint256) returns (bool)","function symbol() view returns (string)","function decimals() view returns (uint8)"]);
+const ZH = {
+ NotSettlor:"只有出資人可以做這件事。",NotBeneficiary:"只有受益人可以做這件事。",InvalidParams:"參數不合理。",ZeroAmount:"金額不能是 0。",
+ OverFunded:"存入後會超過尚未支付的總額：信託已經存足了，多存的錢會永遠卡在合約裡。",NothingToClaim:"現在沒有已到期、屬於你的期數可以領。",
+ TrustPaused:"出資人暫停了撥款：暫停期間受益人不能領款、掛單或成交（承購人照常可領）。",InsufficientFunds:"信託裡的錢不夠付；保留給承購人的部分不能動用。",
+ InvalidRange:"期數範圍不對：起始要小於等於結束，且不能超過最後一期。",PeriodAlreadyDue:"其中有期數已經到期，不能再賣或買。",PeriodNotOwned:"其中有期數已經賣掉了。",
+ AlreadyListed:"其中有期數已經在別的掛單裡。",PriceTooHigh:"售價必須低於面額。",AprTooHigh:"售價太低：隱含年化超過合約上限，請提高售價（或掛單放太久，請重新掛）。",
+ NotFullyFunded:"信託還沒存足，暫時不能出售或承購。",ListingNotActive:"這張掛單已經取消或成交。",CannotBuyOwn:"受益人不能買自己的掛單。",SettlorCannotBuy:"出資人不能承購（避免利益衝突）。",
+ AlreadyPaused:"已經在暫停中。",NotPaused:"目前沒有暫停。",PauseTooLong:"超過單次暫停上限（或填了 0）。",PauseBudgetExceeded:"累計暫停額度已經用完。",
+ ERC20InsufficientAllowance:"授權額度不足，請重新授權。",ERC20InsufficientBalance:"你的代幣餘額不夠。",SafeERC20FailedOperation:"代幣轉帳失敗。",ReentrancyGuardReentrantCall:"偵測到重入呼叫，已拒絕。"
+};
+const $ = id => document.getElementById(id);
+let provider, signer, me, trust, token, iface = new ethers.Interface(TRUST_ABI), C = {};
+let tick;
+
+function toast(msg, kind){const t=$('toast');t.textContent=msg;t.className=kind||'';t.style.display='block';clearTimeout(t._h);t._h=setTimeout(()=>t.style.display='none',kind==='bad'?9000:5000)}
+function short(a){return a?a.slice(0,6)+'…'+a.slice(-4):''}
+function fmt(v){return Number(ethers.formatUnits(v, C.dec)).toLocaleString('zh-TW',{maximumFractionDigits:2})}
+function pct(bps){return (Number(bps)/100).toFixed(2)+'%'}
+function same(a,b){return a&&b&&a.toLowerCase()===b.toLowerCase()}
+function errText(e){
+  if(e&&(e.code==='ACTION_REJECTED'||e?.code===4001||e?.info?.error?.code===4001))return '你在錢包按了拒絕。';
+  if(e?.code===-32002||e?.error?.code===-32002||/already pending/i.test(e?.message||''))return 'MetaMask 已經有一個等待中的連線請求：請點瀏覽器右上角的狐狸圖示處理它。';
+  let name=e?.revert?.name;
+  if(!name){const data=e?.data||e?.info?.error?.data||e?.error?.data;if(typeof data==='string'&&data.length>=10){try{name=iface.parseError(data)?.name}catch(_){}}}
+  if(name&&ZH[name])return ZH[name]+'（'+name+'）';
+  if(name)return '交易被合約拒絕：'+name;
+  return '交易失敗：'+(e?.shortMessage||e?.message||e);
+}
+async function send(label, fn){
+  try{toast(label+'：請在錢包確認…');const tx=await fn();toast(label+'：等待上鏈…');await tx.wait();toast(label+'完成','ok');await refresh();return true}
+  catch(e){toast(errText(e),'bad');return false}
+}
+async function ensureAllowance(amount){
+  const cur=await token.allowance(me, C.trustAddr);
+  if(cur>=amount)return true;
+  return send('授權',()=>token.approve(C.trustAddr, amount));
+}
+
+// 指定使用 MetaMask：裝了多個錢包時，window.ethereum 不一定是 MetaMask（EIP-6963）
+const wallets=[];
+window.addEventListener('eip6963:announceProvider',e=>{wallets.push(e.detail)});
+window.dispatchEvent(new Event('eip6963:requestProvider'));
+function pickWallet(){
+  const mm=wallets.find(w=>w.info&&w.info.rdns==='io.metamask');
+  if(mm)return {eth:mm.provider,name:'MetaMask'};
+  if(wallets.length)return {eth:wallets[0].provider,name:wallets[0].info.name};
+  return window.ethereum?{eth:window.ethereum,name:window.ethereum.isMetaMask?'MetaMask':'瀏覽器錢包'}:null;
+}
+let eth=null;
+async function connect(){
+  const w=pickWallet();
+  if(!w){toast('找不到錢包：請用裝了 MetaMask 的電腦版 Chrome 開啟。','bad');return}
+  eth=w.eth;
+  const btn=$('connect');btn.disabled=true;btn.textContent='連線中…';
+  const slow=setTimeout(()=>toast('還在等錢包回應：請點 Chrome 右上角的拼圖圖示 → MetaMask 狐狸，確認連線請求；MetaMask 若是鎖住的請先解鎖。'),8000);
+  try{
+    await eth.request({method:'eth_requestAccounts'});
+    let cid=await eth.request({method:'eth_chainId'});
+    if(cid!=='0xaa36a7'){
+      try{await eth.request({method:'wallet_switchEthereumChain',params:[{chainId:'0xaa36a7'}]})}
+      catch(e){$('net').textContent='請在錢包切到 Sepolia';$('net').className='pill bad';throw e}
+    }
+    provider=new ethers.BrowserProvider(eth);
+    signer=await provider.getSigner();me=await signer.getAddress();
+    $('net').textContent='Sepolia';$('net').className='pill ok';
+    $('me').textContent='你的地址 '+short(me)+'（'+w.name+'）';btn.textContent='已連線';
+    eth.on?.('accountsChanged',()=>location.reload());eth.on?.('chainChanged',()=>location.reload());
+    const saved=new URLSearchParams(location.search).get('trust')||safeGet('trust');
+    if(saved){$('trustAddr').value=saved;load()}
+  }catch(e){btn.disabled=false;btn.textContent='連接錢包';throw e}
+  finally{clearTimeout(slow)}
+}
+function safeGet(k){try{return localStorage.getItem(k)}catch(_){return null}}
+function safeSet(k,v){try{localStorage.setItem(k,v)}catch(_){}}
+
+async function load(){
+  if(!signer){toast('請先連接錢包。','bad');return}
+  const a=$('trustAddr').value.trim();
+  if(!ethers.isAddress(a)){toast('合約地址格式不對：應該是 0x 開頭、42 個字元。','bad');return}
+  try{
+    trust=new ethers.Contract(a,TRUST_ABI,signer);
+    const [tk,set,ben,unit,amt,total,maxApr,maxPause,interval]=await Promise.all([trust.token(),trust.settlor(),trust.beneficiary(),trust.unit(),trust.amountPerPeriod(),trust.totalPeriods(),trust.maxAprBps(),trust.maxPausePeriods(),trust.interval()]);
+    token=new ethers.Contract(tk,TOKEN_ABI,signer);
+    const [sym,dec]=await Promise.all([token.symbol(),token.decimals()]);
+    C={trustAddr:a,token:tk,settlor:set,beneficiary:ben,unit,amt,total:Number(total),maxApr,maxPause:Number(maxPause),interval:Number(interval),sym,dec:Number(dec)};
+    safeSet('trust',a);
+    $('links').innerHTML='<a href="https://sepolia.etherscan.io/address/'+a+'#code" target="_blank" rel="noopener">信託合約（Etherscan）</a> · <a href="https://sepolia.etherscan.io/token/'+tk+'" target="_blank" rel="noopener">'+sym+' 代幣</a> · 出資人 '+short(set)+' · 受益人 '+short(ben);
+    const role=same(me,set)?'出資人':same(me,ben)?'受益人':'承購人／訪客';
+    $('who').textContent='你是：'+role;$('who').classList.remove('hide');
+    $('p_settlor').classList.toggle('hide',!same(me,set));
+    $('p_benef').classList.toggle('hide',!same(me,ben));
+    $('p_claim').classList.toggle('hide',same(me,set));
+    $('main').classList.remove('hide');
+    await refresh();
+    clearInterval(tick);tick=setInterval(countdown,1000);
+    clearInterval(load.poll);load.poll=setInterval(()=>refresh().catch(()=>{}),20000);
+  }catch(e){toast('讀不到這個合約：確認地址是 FamilyTrust、網路是 Sepolia。','bad')}
+}
+
+let nextTime=0, dueCount=0, listingsCache=[];
+async function refresh(){
+  if(!trust)return;
+  const [bal,cov,np,cc,myBal,isPaused,pu,budget,cl,n]=await Promise.all([token.balanceOf(C.trustAddr),trust.coverageBps(),trust.nextPayout(),trust.claimedCount(),token.balanceOf(me),trust.paused(),trust.pausedUntil(),trust.pauseBudgetLeft(),trust.claimable(me),trust.listingsCount()]);
+  dueCount=np.exists?Number(np.periodId):C.total;nextTime=np.exists?Number(np.time):0;
+  $('k_bal').textContent=fmt(bal)+' '+C.sym;
+  $('k_cov').textContent=cov>=ethers.MaxUint256/2n?'全部付清':pct(cov);
+  $('k_prog').textContent=cc+' / '+C.total;
+  $('k_amt').textContent=fmt(C.amt)+' '+C.sym;
+  $('k_my').textContent=fmt(myBal)+' '+C.sym;
+  countdown();
+  const tag=$('pauseTag');
+  if(isPaused){tag.textContent='暫停中，至 '+new Date(Number(pu)*1000).toLocaleTimeString('zh-TW');tag.className='pill bad'}else{tag.className='pill hide'}
+  $('p_hint').textContent='單次最多暫停 '+C.maxPause+' 期，累計還剩 '+budget+' 期。暫停只延後、不沒收；承購人不受影響。';
+  $('c_n').textContent=cl.periods.toString();$('c_amt').textContent=fmt(cl.amount)+' '+C.sym;
+  $('b_claim').disabled=cl.periods===0n;
+  // 期數狀態
+  const idx=[...Array(C.total).keys()];
+  const [claimedArr,owners]=await Promise.all([Promise.all(idx.map(i=>trust.claimed(i))),Promise.all(idx.map(i=>trust.periodOwner(i)))]);
+  const ls=await Promise.all([...Array(Number(n)).keys()].map(async i=>{const l=await trust.listings(i);let apr=0n,disc=0n;try{[apr,disc]=await Promise.all([trust.impliedAprBps(i),trust.listingDiscountBps(i)])}catch(_){}return {id:i,from:Number(l.fromId),to:Number(l.toId),price:l.price,active:l.active,buyer:l.buyer,apr,disc}}));
+  listingsCache=ls;
+  const listed=new Set();ls.filter(l=>l.active).forEach(l=>{for(let i=l.from;i<=l.to;i++)listed.add(i)});
+  $('strip').innerHTML=idx.map(i=>{let s='s-future';const sold=!same(owners[i],C.beneficiary);
+    if(claimedArr[i])s='s-claimed';else if(i<dueCount)s='s-due';else if(sold)s='s-sold';else if(listed.has(i))s='s-listed';
+    const mine=!claimedArr[i]&&same(owners[i],me)?' s-mine':'';
+    return '<div class="cell '+s+mine+'" title="第 '+i+' 期">'+i+'</div>'}).join('');
+  const f=$('f_amt');if(f&&!f.value){const owe=await trust.unpaidLiabilities();const need=owe>bal?owe-bal:0n;f.value=need>0n?ethers.formatUnits(need,C.dec).split('.')[0]:'';$('f_hint').textContent=need>0n?'還差 '+fmt(need)+' 就存足':'已存足，不需要再存'}
+  renderMarket();
+  quoteForm();
+  loadLog();
+}
+function countdown(){
+  if(!trust)return;
+  if(!nextTime){$('k_next').textContent='全部到期';return}
+  const s=Math.max(0,nextTime-Math.floor(Date.now()/1000));
+  $('k_next').textContent='第 '+dueCount+' 期 · '+(s>=3600?Math.floor(s/3600)+' 時 ':'')+Math.floor(s%3600/60)+' 分 '+(s%60)+' 秒';
+  if(s===0&&!countdown.busy){countdown.busy=true;setTimeout(()=>refresh().catch(()=>{}).finally(()=>{countdown.busy=false}),3000)}
+}
+function renderMarket(){
+  const isBen=same(me,C.beneficiary),isSet=same(me,C.settlor);
+  $('mkt').innerHTML=listingsCache.length?listingsCache.slice().reverse().map(l=>{
+    const face=C.amt*BigInt(l.to-l.from+1);const expired=l.active&&l.from<dueCount;
+    const st=l.buyer!==ethers.ZeroAddress?'已售給 '+(same(l.buyer,me)?'你':short(l.buyer)):expired?'已過期':l.active?'販售中':'已取消';
+    let act='';
+    if(l.active&&isBen)act='<button data-cancel="'+l.id+'">取消</button>';
+    else if(l.active&&!expired&&!isBen&&!isSet)act='<button class="pri" data-buy="'+l.id+'">承購</button>';
+    return '<tr><td>'+l.id+'</td><td class="mono">'+l.from+'–'+l.to+'</td><td class="mono">'+fmt(face)+'</td><td class="mono">'+fmt(l.price)+'</td><td class="mono">'+pct(l.disc)+'</td><td class="mono">'+(l.active&&!expired?pct(l.apr):'—')+'</td><td>'+st+'</td><td>'+act+'</td></tr>'}).join(''):'<tr><td colspan="8" class="muted">還沒有掛單。受益人可以在上方出售未來期數。</td></tr>';
+  document.querySelectorAll('[data-buy]').forEach(b=>b.onclick=()=>buy(+b.dataset.buy));
+  document.querySelectorAll('[data-cancel]').forEach(b=>b.onclick=()=>send('取消掛單',()=>trust.cancelListing(+b.dataset.cancel)));
+}
+async function buy(id){
+  const l=listingsCache.find(x=>x.id===id);if(!l)return;
+  if(await ensureAllowance(l.price))await send('承購',()=>trust.buy(id));
+}
+let qTimer;
+function quoteForm(){
+  clearTimeout(qTimer);qTimer=setTimeout(async()=>{
+    if(!same(me,C.beneficiary))return;
+    const fromEl=$('l_from'),toEl=$('l_to');
+    if(fromEl.value===''){fromEl.value=Math.min(dueCount+2,C.total-1);toEl.value=Math.min(dueCount+4,C.total-1)}
+    const from=+fromEl.value,to=+toEl.value,ref=Math.round((+$('l_ref').value||0)*100);
+    const box=$('l_quote');
+    if(!(to>=from)||to>=C.total){box.textContent='期數範圍不對：到第幾期要大於等於起始，且最多到第 '+(C.total-1)+' 期。';return}
+    if(from<dueCount){box.textContent='第 '+from+' 期已經到期，請從第 '+dueCount+' 期之後開始。';return}
+    try{
+      const [floor,fair]=await Promise.all([trust.quote(from,to,C.maxApr),trust.quote(from,to,ref)]);
+      const face=C.amt*BigInt(to-from+1);
+      const minT=Math.ceil(Number(ethers.formatUnits(floor,C.dec))),fairT=Math.ceil(Number(ethers.formatUnits(fair,C.dec)));
+      if(!$('l_price').value||$('l_price').dataset.auto==='1'){$('l_price').value=fairT;$('l_price').dataset.auto='1'}
+      box.innerHTML='面額 <b class="mono">'+fmt(face)+'</b> · 以 '+(ref/100)+'% 年化的合理價 <b class="mono">'+fairT.toLocaleString()+'</b> · 合約最低價（'+pct(C.maxApr)+'）<b class="mono">'+minT.toLocaleString()+'</b><br>你提早拿到錢的成本：約 '+(Number(ethers.formatUnits(face,C.dec))-(+$('l_price').value||0)).toLocaleString()+' '+C.sym;
+    }catch(e){box.textContent=errText(e)}
+  },300);
+}
+async function loadLog(){
+  try{
+    const latest=await provider.getBlockNumber();
+    const logs=await provider.getLogs({address:C.trustAddr,fromBlock:Math.max(0,latest-9000),toBlock:latest});
+    const rows=logs.slice(-15).reverse().map(lg=>{let p;try{p=iface.parseLog(lg)}catch(_){return ''}if(!p)return '';const a=p.args;
+      const txt={Funded:'出資人存入 '+fmt(a.amount),Claimed:short(a.to)+' 領取 '+a.periods+' 期，共 '+fmt(a.amount),Listed:'受益人掛單 #'+a.listingId+'：第 '+a.fromId+'–'+a.toId+' 期，售價 '+fmt(a.price),ListingCancelled:'取消掛單 #'+a.listingId,PeriodsSold:short(a.buyer)+' 承購掛單 #'+a.listingId+'，付 '+fmt(a.price),Paused:'出資人暫停撥款',Unpaused:'出資人提早恢復'}[p.name]||p.name;
+      return '<div><a class="mono" href="https://sepolia.etherscan.io/tx/'+lg.transactionHash+'" target="_blank" rel="noopener">'+lg.transactionHash.slice(0,10)+'…</a> '+txt+'</div>'}).join('');
+    $('log').innerHTML=rows||'<span class="muted">最近沒有紀錄。</span>';
+  }catch(_){$('log').innerHTML='<span class="muted">暫時讀不到紀錄，可到 Etherscan 查看。</span>'}
+}
+
+$('connect').onclick=()=>connect().catch(e=>toast(errText(e),'bad'));
+$('load').onclick=load;
+$('b_claim').onclick=()=>send('領取',()=>trust.claim());
+$('b_fund').onclick=async()=>{const v=+$('f_amt').value;if(!(v>0)){toast('請輸入存入的顆數。','bad');return}const raw=BigInt(Math.floor(v))*C.unit;if(await ensureAllowance(raw)){$('f_amt').value='';await send('存入',()=>trust.fund(Math.floor(v)))}};
+$('b_pause').onclick=()=>{const n=+$('p_n').value;if(!(n>0)){toast('請輸入暫停期數。','bad');return}send('暫停',()=>trust.pause(n))};
+$('b_unpause').onclick=()=>send('恢復撥款',()=>trust.unpause());
+['l_from','l_to','l_ref'].forEach(id=>$(id).oninput=()=>{$('l_price').dataset.auto='1';quoteForm()});
+$('l_price').oninput=()=>{$('l_price').dataset.auto='0';quoteForm()};
+$('b_list').onclick=()=>{const f=+$('l_from').value,t=+$('l_to').value,p=+$('l_price').value;if(!(p>0)){toast('請輸入售價。','bad');return}send('掛單',()=>trust.listPeriods(f,t,Math.floor(p)))};
+
+})();
+</script>
+</body>
+</html>
