@@ -302,6 +302,7 @@ function toast(msg,kind,hash){const t=document.createElement("div");t.className=
  t.innerHTML=esc(msg)+(hash?'<code><a href="'+SCAN+'/tx/'+hash+'" target="_blank" rel="noopener">'+short(hash)+' ↗</a></code>':"");$("#toasts").appendChild(t);setTimeout(()=>t.remove(),kind==="bad"?9000:6000);}
 const lsGet=k=>{try{return localStorage.getItem(k)}catch(e){return null}};
 const lsSet=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
+const isOwnerSafe=(sf,a)=>!!sf&&!!a&&(sf.owners||[]).some(o=>same(o,a));
 function myRole(){if(!S||demo||!me)return null;if(same(me,S.settlor))return"settlor";if(same(me,S.beneficiary))return"beneficiary";return"buyer";}
 const buyerAddr=()=>demo?S.demoAddrs.buyer:(myRole()==="buyer"?me:null);
 const nowX=D=>Math.min(S.total,Math.max(0,(D.t-S.start)/S.interval));
@@ -524,12 +525,12 @@ function eventsList(limit){
  return'<ul class="ev">'+S.events.slice(0,limit||999).map(e=>{const m=EVENTS[e.sig];
   return'<li><span class="dot" style="background:'+m.c+'"></span><span><b>'+m.n+'</b> <span class="note">'+esc(evDesc(e))+'</span></span><span class="addr">'+(e.ts?tm(e.ts)+" ":"")+'<a href="'+SCAN+'/tx/'+e.tx+'" target="_blank" rel="noopener">↗</a></span></li>';}).join("")+'</ul>';}
 function listingTable(D,mode){
- const rows=S.listings.slice().reverse().filter(l=>mode!=="market"||(l.active&&l.fromId>=D.due));
+ const rows=S.listings.slice().reverse().filter(l=>mode!=="market"||l.active);
  if(!rows.length)return'<div class="empty">'+(mode==="market"?"目前沒有可承購的掛單":"還沒有掛單")+'</div>';
  return'<div class="tbl"><table><thead><tr><th>#</th><th>期數</th><th class="r">面額</th><th class="r">售價</th><th class="r">折價</th><th class="r">隱含年化</th><th>第一期到期</th><th>狀態</th>'+(mode==="all"?"":"<th></th>")+'</tr></thead><tbody>'+
  rows.map(l=>{const n=l.toId-l.fromId+1,face=S.amount*BigInt(n),firstAt=S.start+(l.fromId+1)*S.interval,expired=l.active&&l.fromId<D.due;
   const st=l.active?(expired?'<span class="pill p-bad"><i></i>已過期</span>':'<span class="pill p-warn"><i></i>掛單中</span>'):(l.buyer&&l.buyer!==ethers.ZeroAddress?'<span class="pill p-s2"><i></i>已售 '+short(l.buyer)+'</span>':'<span class="pill"><i></i>已取消</span>');
-  let act="";if(mode==="market")act=B("buy:"+l.id,"承購","pri",'data-id="'+l.id+'"',"buyer");if(mode==="mine"&&l.active)act=B("cancel:"+l.id,"取消","",'data-id="'+l.id+'"',"beneficiary");
+  let act="";if(mode==="market")act=expired?'<span class="note">已到期，無法承購</span>':'<button class="btn pri" data-act="buy:'+l.id+'" data-id="'+l.id+'"'+(busy["buy:"+l.id]?" disabled":"")+'>'+(busy["buy:"+l.id]?"處理中…":"承購")+'</button>'+(l.fromId-D.due<=1?'<div class="note" style="color:var(--warning);margin-top:4px">第一期 <span data-cd="'+firstAt+'">'+dur(firstAt-D.t)+'</span> 後到期</div>':'');if(mode==="mine"&&l.active)act=B("cancel:"+l.id,"取消","",'data-id="'+l.id+'"',"beneficiary");
   return'<tr><td class="num">'+l.id+'</td><td class="num">'+l.fromId+'–'+l.toId+' <span class="note">'+n+' 期</span></td><td class="r num">'+tok(face)+'</td><td class="r num">'+tok(l.price)+'</td><td class="r num">'+pct(l.disc)+'</td><td class="r num">'+(l.active&&!expired?pct(l.apr):"—")+'</td><td class="num">'+tm(firstAt)+'</td><td>'+st+'</td>'+(mode==="all"?"":'<td class="r">'+act+'</td>')+'</tr>';}).join("")+'</tbody></table></div>';}
 function ownershipBar(D){
  const parts=[["已領",D.n.claimed,"var(--faint)"],D.payable?["到期可領",D.n.due,"var(--success)"]:["到期・待存入",D.n.due,"var(--danger)"],["受益人持有",D.n.future,"var(--s1)"],["掛單中",D.n.listed,"var(--warning)"],["已售承購人",D.n.sold,"var(--s2)"]].filter(p=>p[1]>0);
@@ -617,6 +618,8 @@ function vBuyer(D){
   cf=lineChart("roi",[{name:"淨現金流",color:"var(--s2)",pts:pts.map(p=>[p[0],p[1]+off]),label:"淨賺 "+fnum(c,0)}],{xmin:0,xmax:S.total,xticks:xt(),xFmt:v=>"第"+v+"期",
    yFmt:v=>fnum(v-off,0),tFmt:v=>fnum(v-off,0)+" "+S.symbol,tTitle:v=>"第 "+Math.round(v)+" 期",h:210,w:760,aria:"承購人淨現金流",vline:{x:nowX(D),label:"現在"}});}
  return ph("承購人","以折價買下受益人的未來期數，到期由信託直接付款給你。出資人暫停不影響你的期數。",roleNote("buyer"))+
+ (!demo&&me&&myRole()!=="buyer"?'<div class="banner warn"><b>目前是'+ROLE_N[myRole()]+'錢包</b>'+ROLE_N[myRole()]+'不能承購。請在 MetaMask 切換到另一個帳戶（不是出資人、也不是受益人），頁面會自動更新。</div>':'')+
+ (!demo&&!me?'<div class="banner info"><b>還沒連接錢包</b>按右上角「連接錢包」，用承購人的帳戶連接後才能承購。</div>':'')+
  '<div class="kpis">'+kpi("投入成本",fnum(cost,0)+'<small>'+S.symbol+'</small>',myDeals.length+" 筆承購","var(--s2)")+
   kpi("到期面額",fnum(face,0)+'<small>'+S.symbol+'</small>',"預期收益 "+fnum(face-cost,0),"var(--success)")+
   kpi("已收回",fnum(received,0)+'<small>'+S.symbol+'</small>',mine.filter(p=>p.claimed).length+" / "+mine.length+" 期","var(--s1)")+
@@ -699,14 +702,21 @@ function vEmpty(){return ph("歡迎使用 FamilyTrust","鏈上信託的控制台
  '<div class="card"><div class="empty" style="padding:40px 0"><p style="margin:0 0 14px;color:var(--text)">還沒載入信託合約</p><div class="row" style="justify-content:center"><button class="btn pri" data-go="settings">設定合約地址</button><button class="btn" id="goDemo">先看示範資料</button></div></div></div>';}
 
 /* ---------- render ---------- */
+function snapForm(){const m={};document.querySelectorAll("#view input[id],#view select[id]").forEach(e=>{m[e.id]={v:e.type==="checkbox"?e.checked:e.value,t:e.dataset.touched};});
+ const sc=[...document.querySelectorAll("#view [data-scope]")].map(e=>e.checked);return{m,sc,a:document.activeElement&&document.activeElement.id};}
+function restoreForm(f){if(!f)return;Object.keys(f.m).forEach(id=>{const e=document.getElementById(id);if(!e||id==="cfgAddr"&&!f.m[id].t)return;
+  if(e.type==="checkbox")e.checked=f.m[id].v;else if(f.m[id].v!==""||f.m[id].t)e.value=f.m[id].v;if(f.m[id].t)e.dataset.touched=f.m[id].t;});
+ const sc=document.querySelectorAll("#view [data-scope]");if(f.sc.length===sc.length)sc.forEach((e,i)=>e.checked=f.sc[i]);if(f.a){const e=document.getElementById(f.a);if(e)e.focus();}}
+let lastPage=null;
 function render(){
+ const keepForm=lastPage===page?snapForm():null;lastPage=page;
  renderChrome();const v=$("#view");
  if(!S&&page!=="settings"){v.innerHTML=vEmpty();$("#banner").innerHTML="";bindView(null);return;}
  const D=S?derive():null;
  $("#banner").innerHTML=!D?"":D.paused?'<div class="banner bad"><b>暫停中</b>出資人暫停了受益人撥款，'+dur(S.pausedUntil-D.t)+' 後自動恢復。承購人不受影響。</div>':
   (!D.fullyFunded?'<div class="banner warn"><b>尚未存足</b>信託目前有 '+tok(S.balance,0)+' / '+tok(S.unpaid,0)+' '+S.symbol+(D.payable?'，暫時不能掛單或承購。':'，連到期的款項都付不出來。請出資人到「出資人」頁存入。')+'</div>':(demo?'<div class="banner info">示範資料：數字是假的，按鈕不會送出交易。到「設定」載入真實合約。</div>':''));
  v.innerHTML=({overview:vOverview,settlor:vSettlor,beneficiary:vBeneficiary,buyer:vBuyer,cashflow:vCashflow,market:vMarket,ledger:vLedger,rules:vRules,settings:vSettings}[page]||vOverview)(D);
- bindView(D);
+ restoreForm(keepForm);bindView(D);
 }
 function bindView(D){
  document.querySelectorAll("[data-go]").forEach(a=>a.onclick=e=>{e.preventDefault();nav(a.dataset.go);});
@@ -719,6 +729,7 @@ function bindView(D){
  document.querySelectorAll("#ledSeg [data-f]").forEach(b=>b.onclick=()=>{ledFilter=b.dataset.f;render();});
  const g=$("#pgrid");if(g){g.onmousemove=e=>{const c=e.target.closest("[data-p]");if(!c){hideTip();return;}const p=D.periods[+c.dataset.p];
   showTip('<div class="t">第 '+p.i+' 期 · '+ST_N[p.st]+(p.listing>=0?" #"+p.listing:"")+'</div><div class="r"><span>到期</span><span>'+hm(p.dueAt)+'</span></div><div class="r"><span>擁有者</span><span>'+esc(who(p.owner))+'</span></div>',e);};g.onmouseleave=hideTip;}
+ document.querySelectorAll("#view input[id],#view select[id]").forEach(e=>{const o=e.oninput;e.addEventListener("input",()=>{e.dataset.touched="1";});});
  ["lsFrom","lsTo"].forEach(id=>{const el=document.getElementById(id);if(el)el.oninput=()=>quoteForm(D);});if($("#lsFrom"))quoteForm(D);
  bindCharts();
 }
@@ -741,7 +752,14 @@ async function act(key,id){
  if(k==="unpause")return send(key,c=>c.unpause(),"已恢復撥款");
  if(k==="list"){const f=+$("#lsFrom").value,t=+$("#lsTo").value,p=Math.floor(+$("#lsPrice").value);if(!(p>0))return toast("請輸入售價","bad");return send(key,c=>c.listPeriods(f,t,p),"掛單成功：第 "+f+"–"+t+" 期");}
  if(k==="cancel")return send(key,c=>c.cancelListing(+id),"已取消掛單 #"+id);
- if(k==="buy"){const l=S.listings[+id];return send(key,async c=>{await ensureAllowance(l.price);return c.buy(+id);},"承購成功：第 "+l.fromId+"–"+l.toId+" 期");}
+ if(k==="buy"){const l=S.listings[+id];
+  if(!demo){if(!me)return toast("請先連接承購人的錢包","bad");
+   if(same(me,S.beneficiary)||(S.benSafe&&isOwnerSafe(S.benSafe,me)))return toast("你現在連的是受益人錢包：受益人不能承購自己的掛單，請在 MetaMask 切換到承購人帳戶","bad");
+   if(same(me,S.settlor))return toast("你現在連的是出資人錢包：出資人不能承購（避免利益衝突），請在 MetaMask 切換到承購人帳戶","bad");}
+  const Dn=derive();if(l.fromId<Dn.due)return toast("這張掛單的第一期已經到期，合約不允許承購（PeriodAlreadyDue）","bad");
+  if(Dn.paused)return toast("出資人暫停中，暫時不能承購","bad");if(!Dn.fullyFunded)return toast("信託尚未存足，暫時不能承購（NotFullyFunded）","bad");
+  if(!demo&&S.myBal!=null&&S.myBal<l.price)return toast("你的 "+S.symbol+" 餘額不足："+tok(S.myBal,0)+" < 售價 "+tok(l.price,0),"bad");
+  return send(key,async c=>{await ensureAllowance(l.price);return c.buy(+id);},"承購成功：第 "+l.fromId+"–"+l.toId+" 期");}
 }
 
 /* ---------- tick ---------- */
