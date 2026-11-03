@@ -11,3 +11,5 @@
 | `contracts/FamilyTrustV2.sol` | 可升級信託合約（UUPS），v4 用 |
 
 網址加 `?trust=0x…` 載入合約，加 `?demo=1` 看示範資料。
+
+**Remix 部署合約：見 [DEPLOY.md](DEPLOY.md)。**
