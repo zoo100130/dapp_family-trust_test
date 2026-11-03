@@ -155,6 +155,7 @@ tr:last-child td{border-bottom:0}
 .s-claimed{background:var(--surface-2);color:var(--faint)}
 .s-due{background:var(--success);color:#0b1a12}
 .s-due.blk{background:color-mix(in srgb,var(--danger) 22%,transparent);color:var(--danger)}
+.s-dueNF{background:color-mix(in srgb,var(--danger) 22%,transparent);color:var(--danger)}
 .s-future{background:color-mix(in srgb,var(--s1) 20%,transparent);color:var(--s1)}
 .s-listed{background:color-mix(in srgb,var(--s1) 10%,transparent);color:var(--warning);outline:1.5px dashed var(--warning);outline-offset:-1.5px}
 .s-sold{background:color-mix(in srgb,var(--s2) 22%,transparent);color:var(--s2)}
@@ -314,10 +315,12 @@ function derive(){
   const st=c?"claimed":isDue?"due":listedIn[i]>=0?"listed":same(owner,S.beneficiary)?"future":"sold";
   periods.push({i,owner,claimed:c,due:isDue,st,listing:listedIn[i],dueAt:S.start+(i+1)*S.interval,ben:same(owner,S.beneficiary)});}
  const benDue=periods.filter(p=>p.due&&!p.claimed&&p.ben).length;
+ const dueUnpaid=periods.filter(p=>p.due&&!p.claimed).length,payable=S.balance>=S.amount*BigInt(dueUnpaid);
+ if(!payable)periods.forEach(p=>{if(p.st==="due")p.st="dueNF";});
  const next=due<P?{i:due,at:S.start+(due+1)*S.interval}:null;
  const cnt=k=>periods.filter(p=>p.st===k).length;
- return {t,due,paused,periods,benDue,next,pauseLeft:Math.max(0,S.pauseBudget-S.pauseUsed),fullyFunded:S.balance>=S.unpaid,
-  n:{claimed:cnt("claimed"),due:cnt("due"),future:cnt("future"),listed:cnt("listed"),sold:cnt("sold")},
+ return {t,due,paused,periods,benDue,next,payable,pauseLeft:Math.max(0,S.pauseBudget-S.pauseUsed),fullyFunded:S.balance>=S.unpaid,
+  n:{claimed:cnt("claimed"),due:cnt("due")+cnt("dueNF"),dueNF:cnt("dueNF"),future:cnt("future"),listed:cnt("listed"),sold:cnt("sold")},
   soldTotal:periods.filter(p=>!p.ben).length,soldUnclaimed:periods.filter(p=>!p.ben&&!p.claimed).length,
   deals:S.listings.filter(l=>!l.active&&l.buyer&&l.buyer!==ethers.ZeroAddress)};
 }
@@ -506,11 +509,11 @@ function roleNote(r){const mr=myRole();if(demo)return'<span class="pill p-warn">
  return mr===r?'<span class="pill p-ok"><i></i>你是'+ROLE_N[r]+'</span>':'<span class="pill"><i></i>你不是'+ROLE_N[r]+' · 唯讀</span>';}
 const canAct=r=>demo||myRole()===r;
 function B(key,label,cls,attrs,role){const dis=busy[key]||(role&&!canAct(role));return'<button class="btn '+(cls||"")+'" data-act="'+key+'" '+(attrs||"")+(dis?" disabled":"")+'>'+(busy[key]?"處理中…":label)+'</button>';}
-const ST_N={claimed:"已領",due:"到期可領",future:"受益人持有",listed:"掛單中",sold:"已售承購人"};
+const ST_N={claimed:"已領",due:"到期可領",dueNF:"到期・待存入",future:"受益人持有",listed:"掛單中",sold:"已售承購人"};
 function periodGrid(D,hl){
  return'<div class="periods" id="pgrid">'+D.periods.map(p=>{const mine=hl&&same(p.owner,hl)&&!p.claimed,blk=p.st==="due"&&D.paused&&p.ben;
   return'<div class="cell s-'+p.st+(blk?" blk":"")+(mine?" mine":"")+'" data-p="'+p.i+'">'+p.i+'</div>';}).join("")+'</div>'+
- '<div class="legend"><span><i class="s-claimed"></i>已領</span><span><i class="s-due"></i>到期可領</span><span><i class="s-future"></i>受益人持有</span><span><i class="s-listed"></i>掛單中</span><span><i class="s-sold"></i>已售承購人</span>'+(hl?'<span><i style="box-shadow:inset 0 0 0 2px var(--text)"></i>你的期數</span>':'')+'</div>';}
+ '<div class="legend"><span><i class="s-claimed"></i>已領</span>'+(D.payable?'<span><i class="s-due"></i>到期可領</span>':'<span><i class="s-dueNF"></i>到期・待存入</span>')+'<span><i class="s-future"></i>受益人持有</span><span><i class="s-listed"></i>掛單中</span><span><i class="s-sold"></i>已售承購人</span>'+(hl?'<span><i style="box-shadow:inset 0 0 0 2px var(--text)"></i>你的期數</span>':'')+'</div>';}
 function evDesc(e){const a=e.args;if(!a)return"";try{switch(e.sig.split("(")[0]){
  case"Funded":return who(a[0])+" 存入 "+tok(a[1])+" "+S.symbol;case"Claimed":return who(a[0])+" 領取 "+a[1]+" 期，"+tok(a[2])+" "+S.symbol;
  case"Listed":return"#"+a[0]+" 第 "+a[1]+"–"+a[2]+" 期，售價 "+tok(a[3]);case"ListingCancelled":return"#"+a[0];
@@ -529,7 +532,7 @@ function listingTable(D,mode){
   let act="";if(mode==="market")act=B("buy:"+l.id,"承購","pri",'data-id="'+l.id+'"',"buyer");if(mode==="mine"&&l.active)act=B("cancel:"+l.id,"取消","",'data-id="'+l.id+'"',"beneficiary");
   return'<tr><td class="num">'+l.id+'</td><td class="num">'+l.fromId+'–'+l.toId+' <span class="note">'+n+' 期</span></td><td class="r num">'+tok(face)+'</td><td class="r num">'+tok(l.price)+'</td><td class="r num">'+pct(l.disc)+'</td><td class="r num">'+(l.active&&!expired?pct(l.apr):"—")+'</td><td class="num">'+tm(firstAt)+'</td><td>'+st+'</td>'+(mode==="all"?"":'<td class="r">'+act+'</td>')+'</tr>';}).join("")+'</tbody></table></div>';}
 function ownershipBar(D){
- const parts=[["已領",D.n.claimed,"var(--faint)"],["到期可領",D.n.due,"var(--success)"],["受益人持有",D.n.future,"var(--s1)"],["掛單中",D.n.listed,"var(--warning)"],["已售承購人",D.n.sold,"var(--s2)"]].filter(p=>p[1]>0);
+ const parts=[["已領",D.n.claimed,"var(--faint)"],D.payable?["到期可領",D.n.due,"var(--success)"]:["到期・待存入",D.n.due,"var(--danger)"],["受益人持有",D.n.future,"var(--s1)"],["掛單中",D.n.listed,"var(--warning)"],["已售承購人",D.n.sold,"var(--s2)"]].filter(p=>p[1]>0);
  return'<div class="stackbar">'+parts.map(p=>'<i style="flex:'+p[1]+';background:'+p[2]+'" title="'+p[0]+' '+p[1]+'"></i>').join("")+'</div><div class="legend" style="margin-top:0">'+parts.map(p=>'<span><i style="background:'+p[2]+'"></i>'+p[0]+' <b class="num" style="color:var(--text)">'+p[1]+'</b></span>').join("")+'</div>';}
 function cumSeries(D){
  const ben=[[0,0]],buy=[[0,0]];let b=0,y=0;const A=tokN(S.amount);
@@ -701,7 +704,7 @@ function render(){
  if(!S&&page!=="settings"){v.innerHTML=vEmpty();$("#banner").innerHTML="";bindView(null);return;}
  const D=S?derive():null;
  $("#banner").innerHTML=!D?"":D.paused?'<div class="banner bad"><b>暫停中</b>出資人暫停了受益人撥款，'+dur(S.pausedUntil-D.t)+' 後自動恢復。承購人不受影響。</div>':
-  (!D.fullyFunded?'<div class="banner warn"><b>尚未存足</b>信託餘額低於未付總額，暫時不能掛單或承購。</div>':(demo?'<div class="banner info">示範資料：數字是假的，按鈕不會送出交易。到「設定」載入真實合約。</div>':''));
+  (!D.fullyFunded?'<div class="banner warn"><b>尚未存足</b>信託目前有 '+tok(S.balance,0)+' / '+tok(S.unpaid,0)+' '+S.symbol+(D.payable?'，暫時不能掛單或承購。':'，連到期的款項都付不出來。請出資人到「出資人」頁存入。')+'</div>':(demo?'<div class="banner info">示範資料：數字是假的，按鈕不會送出交易。到「設定」載入真實合約。</div>':''));
  v.innerHTML=({overview:vOverview,settlor:vSettlor,beneficiary:vBeneficiary,buyer:vBuyer,cashflow:vCashflow,market:vMarket,ledger:vLedger,rules:vRules,settings:vSettings}[page]||vOverview)(D);
  bindView(D);
 }
